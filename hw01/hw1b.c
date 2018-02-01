@@ -16,21 +16,22 @@ struct itimerval v;
 int interval_sec = 1;
 
 void sig_handler(int num) {
-	FILE *fp;
-	fp = fopen("/proc/stat", "r"); 
-	char c;
-	c = fgetc(fp);
-	while((c = fgetc(fp)) != 'r') { continue; }
-	cur_total = 0;
-	c = fgetc(fp);
-	while((c = fgetc(fp)) != ' '){
-		cur_total *= 10;
-		cur_total += c - '0';
-	}
-	fclose(fp);
+  FILE *fp;
+  fp = fopen("/proc/stat", "r"); 
+  char c;
+  c = fgetc(fp);
+  while((c = fgetc(fp)) != 'r') { continue; }
+  cur_total = 0;
+  c = fgetc(fp);
+  while((c = fgetc(fp)) != ' '){
+    cur_total *= 10;
+    cur_total += c - '0';
+  }
+  fclose(fp);
 }
 
 int main(int argc, char** argv) {
+  // check input
   if(argc > 1) {
     if(!strcmp(argv[1], "-s")) {
       int seconds = 0;
@@ -38,6 +39,7 @@ int main(int argc, char** argv) {
       while(*s) {
 	if(!isdigit(*s)) {
 	  printf("Invalid input! Seconds must be integers  only! The interval second will be set to 1 second as default \n");
+	  seconds = 1;
 	  break;
 	}
 	seconds *= 10;
@@ -50,12 +52,13 @@ int main(int argc, char** argv) {
       exit(0);
     }
   }
+  // set timer 
   v.it_value.tv_sec = interval_sec;
   v.it_value.tv_usec = INTERVAL_USEC;
   v.it_interval.tv_sec = interval_sec;
   v.it_interval.tv_usec = INTERVAL_USEC;
   signal(SIGALRM, sig_handler);
-  setitimer(ITIMER_REAL, &v, NULL);
+  
   while(1) {
     setitimer(ITIMER_REAL, &v, NULL);
     pause();
