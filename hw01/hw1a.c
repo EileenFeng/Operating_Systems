@@ -8,7 +8,11 @@ int current_total;
 
 void sig_handler(int num) {
   FILE *fp;
-  fp = fopen("/proc/stat", "r"); 
+  fp = fopen("/proc/stat", "r");
+  if(!fp) {
+    printf("Read file failed! \n");
+    exit(0);
+  }
   char c;
   while((c = fgetc(fp)) != 'r') { continue; }
   c = fgetc(fp);

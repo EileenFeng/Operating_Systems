@@ -17,7 +17,11 @@ int interval_sec = 1;
 
 void sig_handler(int num) {
   FILE *fp;
-  fp = fopen("/proc/stat", "r"); 
+  fp = fopen("/proc/stat", "r");
+  if(!fp) {
+    printf("Read file failed! \n");
+    exit(0);
+  }
   char c;
   c = fgetc(fp);
   while((c = fgetc(fp)) != 'r') { continue; }
@@ -38,7 +42,7 @@ int main(int argc, char** argv) {
       char* s = argv[2];
       while(*s) {
 	if(!isdigit(*s)) {
-	  printf("Invalid input! Seconds must be integers  only! The interval second will be set to 1 second as default \n");
+	  printf("Invalid input! Seconds must be integers only! The interval second will be set to 1 second as default \n");
 	  seconds = 1;
 	  break;
 	}
