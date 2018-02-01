@@ -10,7 +10,8 @@
 #define INTERVAL_USEC 0
 
 // global variables
-int total_intr = 0;
+int last_total = 0;
+int cur_total;
 struct itimerval v;
 int interval_sec = 1;
 
@@ -20,20 +21,13 @@ void sig_handler(int num) {
 	char c;
 	c = fgetc(fp);
 	while((c = fgetc(fp)) != 'r') { continue; }
-	int sum = 0;
+	cur_total = 0;
 	c = fgetc(fp);
 	while((c = fgetc(fp)) != ' '){
-		sum *= 10;
-		sum += c - '0';
+		cur_total *= 10;
+		cur_total += c - '0';
 	}
 	fclose(fp);
-	if(total_intr == 0) {
-	  total_intr = sum;
-	}else{
-	  printf("The interrupt rate at the past second is: %d\n", (sum - total_intr)/interval_sec);
-	}
-	printf("Total number of interrupts is: %d\n", sum);
-	setitimer(ITIMER_REAL, &v, NULL);
 }
 
 int main(int argc, char** argv) {
@@ -63,7 +57,14 @@ int main(int argc, char** argv) {
   signal(SIGALRM, sig_handler);
   setitimer(ITIMER_REAL, &v, NULL);
   while(1) {
+    setitimer(ITIMER_REAL, &v, NULL);
     pause();
+    if(last_total == 0) {
+      last_total = cur_total;
+    }else{
+      printf("The interrupt rate at the past second is: %d\n", (cur_total - last_total)/interval_sec);
+    }
+    printf("Total number of interrupts is: %d\n", cur_total);
   }
   exit(0);
 }
