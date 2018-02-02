@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     if(last_total == 0) {
       last_total = cur_total;
     }else{
-      printf("The interrupt rate at the past second is: %d\n", (cur_total - last_total)/interval_sec);
+      printf("The interrupt rate is: %d\n", (cur_total - last_total)/interval_sec);
     }
     printf("Total number of interrupts is: %d\n", cur_total);
   }
