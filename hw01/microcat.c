@@ -5,6 +5,7 @@
 #include <sys/errno.h>
 #include <sys/wait.h>
 #include <sys/signal.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -17,31 +18,44 @@ ssize_t bytes_written;
 int rfd = 0;
 int wfd = 1;
 
-void sig_handler(int signal) {
-  printf("Help! I think I've been shot!!!\n");
+// error messages
+char writef[] = "Write failed!\n";
+char openf[] = "Open file failed.\n";
+char readf[] = "Read failed. \n";
+char closef[] = "Close file failed.\n";
+
+// output error message to console
+void errormsg(char* msg, size_t bytes) {
+  write(1, msg, bytes);
   exit(0);
+}
+
+void shotmsg(){
+  char msg[] = "Help! I think I've been shot!!!\n";
+  write(1, msg, sizeof(msg));
+  exit(0);
+}
+
+void sig_handler(int signal) {
+  shotmsg();
 }
 
 // function for cat files (read from file and write to stdout)
 void cat_file(char* file) {
   if((rfd = open(file, O_RDONLY)) < 0) {
-    printf("Open file %s failed. Error number %d.\n", file, errno);
-    exit(0);
+    errormsg(openf, sizeof(openf));
   }
   while((bytes_read = read(rfd, &c, nbytes)) > 0) {
     bytes_written = write(wfd, &c, bytes_read);
     if(bytes_written < 0) {
-      printf("Write failed! Error number: %d\n", errno);
-      exit(0);
+      errormsg(writef, sizeof(writef));
     }
   }
   if(bytes_read < 0) {
-    printf("Read from file %s failed! Error number: %d\n", file, errno);
-    exit(0);
+    errormsg(readf, sizeof(readf));
   }
   if(close(rfd) < 0){
-    printf("Close file failed. Error number: %d\n", errno);
-    exit(0);
+    errormsg(closef, sizeof(closef));
   }
 }
 
@@ -50,13 +64,11 @@ void cat_stdIO(){
   while((bytes_read = read(rfd, &c, nbytes)) > 0) {
     bytes_written = write(wfd, &c, bytes_read);
     if(bytes_written < 0) {
-      printf("Write failed! Error number: %d\n", errno);
-      exit(0);
+      errormsg(writef, sizeof(writef));
     }
   }
   if(bytes_read < 0) {
-    printf("Read from stdin failed! Error number: %d\n", errno);
-    exit(0);
+    errormsg(readf, sizeof(readf));
   }
 }
 
@@ -77,10 +89,10 @@ int main(int argc, char** argv) {
     }
     if(outputToFile) { // need to redirect output to files
       wfd = open(argv[argc-1], O_CREAT|O_RDWR|O_TRUNC, 0666);
-      fileEnd = argc - 2;
       if(wfd < 0) {
-	printf("Open file %s failed. Error number: %d\n", argv[argc-1], errno);
+	errormsg(openf, sizeof(openf));
       }
+      fileEnd = argc - 2;
     }else { // output to stdio
       fileEnd = argc;
       wfd = 1;
@@ -100,7 +112,7 @@ int main(int argc, char** argv) {
     // close written file if applicable
     if(outputToFile) {
       if(close(wfd) < 0) {
-	printf("Close file %s failed. Error number %d.\n", argv[argc-1], errno);
+	errormsg(closef, sizeof(closef));
       }
     }
   } else {
