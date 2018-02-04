@@ -14,24 +14,25 @@ int last_total = 0;
 int cur_total;
 struct itimerval v;
 int interval_sec = 1;
+int read_failed = 0;
 
 void sig_handler(int num) {
   FILE *fp;
   fp = fopen("/proc/stat", "r");
   if(!fp) {
-    printf("Read file failed! \n");
-    exit(0);
+    read_failed = 1;
+  } else {
+    char c;
+    c = fgetc(fp);
+    while((c = fgetc(fp)) != 'r') { continue; }
+    cur_total = 0;
+    c = fgetc(fp);
+    while((c = fgetc(fp)) != ' '){
+      cur_total *= 10;
+      cur_total += c - '0';
+    }
+    fclose(fp);
   }
-  char c;
-  c = fgetc(fp);
-  while((c = fgetc(fp)) != 'r') { continue; }
-  cur_total = 0;
-  c = fgetc(fp);
-  while((c = fgetc(fp)) != ' '){
-    cur_total *= 10;
-    cur_total += c - '0';
-  }
-  fclose(fp);
 }
 
 int main(int argc, char** argv) {
@@ -65,13 +66,19 @@ int main(int argc, char** argv) {
   
   while(1) {
     setitimer(ITIMER_REAL, &v, NULL);
-    pause();
-    if(last_total == 0) {
-      last_total = cur_total;
-    }else{
-      printf("The interrupt rate is: %d\n", (cur_total - last_total)/interval_sec);
+    if(read_failed) {
+      printf("Read file failed! \n");
+      exit(0);
     }
-    printf("Total number of interrupts is: %d\n", cur_total);
+    pause();
+    if(!read_failed) {
+      if(last_total == 0) {
+	last_total = cur_total;
+      }else{
+	printf("The interrupt rate is: %d\n", (cur_total - last_total)/interval_sec);
+      }
+      printf("Total number of interrupts is: %d\n", cur_total);
+    }
   }
   exit(0);
 }
