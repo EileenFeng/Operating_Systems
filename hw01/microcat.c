@@ -73,8 +73,11 @@ void cat_stdIO(){
 }
 
 int main(int argc, char** argv) {
+  int sameFile = 0;
   for (int i = 1; i <= 31; i++) {
-    signal(i, sig_handler);
+    if(i != 9 && i !=17) {
+      signal(i, sig_handler);
+    }
   }
   signal(SIGINT, sig_handler);
   if(argc > 1) {
@@ -101,8 +104,12 @@ int main(int argc, char** argv) {
       if(strcmp(argv[fileNum], "-") == 0) { // read from stdin
 	rfd = 0;
 	cat_stdIO();
-      } else if(strcmp(argv[fileNum], ">") == 0) { 
+      } else if(strcmp(argv[fileNum], ">") == 0)  { 
 	fileNum++;
+	continue;
+      } else if (strcmp(argv[fileNum], argv[argc-1]) == 0 && outputToFile) {
+	fileNum ++;
+	sameFile = 1;
 	continue;
       } else { // read from file
 	cat_file(argv[fileNum]);
@@ -118,6 +125,11 @@ int main(int argc, char** argv) {
   } else {
     wfd = 1;
     cat_stdIO();
+  }
+  if(sameFile) {
+    char samef[] = "Input file is the output file\n";
+    write(1, &samef, sizeof(samef));
+    sameFile = 0;
   }
   exit(0);
 }

@@ -4,7 +4,7 @@ all: hw1a hw1b microcat
 hw1a: hw1a.o
 	$(CC) -o hw1a hw1a.o
 hw1b: hw1b.o
-	$(CC) -o hw1b hw1b.
+	$(CC) -o hw1b hw1b.o
 microcat: microcat.o
 	$(CC) -o microcat microcat.o
 hw1a.o: hw1a.c
