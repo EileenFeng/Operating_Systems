@@ -35,7 +35,6 @@ void* compute(void* arg) {
   int result = 0; 
   for(int i = 0; i < N; i++) {
     result += A[cv->ar][i] * B[i][cv->bc];
-    printf("A: r %d c %d v %d, B r %d c %d v %d, pro: %d, result: %d\n", cv->ar, i, A[cv->ar][i], i, cv->bc, B[i][cv->bc], A[cv->ar][i] * B[i][cv->bc], result);
   }
   C[cv->ar][cv->bc] = result;
 } 
