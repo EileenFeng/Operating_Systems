@@ -7,21 +7,24 @@
    #define _REENTRANT
 #endif
 
-#define N 5
-
- //global variables
-// matrices
-int A[N][N];
-int B[N][N];
-int C[N][N];
-// row sum 
-int MAX_ROW_SUM = 0; 
-// mutex
-pthread_mutex_t lock;
+#define N 3
 
 // structs
 typedef struct {int row; int col; int a_val; int b_val;} write_val;
 typedef struct {int ar; int bc;} calc_val;
+
+//global variables
+// matrices
+int A[N][N];
+int B[N][N];
+int C[N][N];
+
+// row sum 
+int MAX_ROW_SUM = 0; 
+
+// mutex
+pthread_mutex_t lock;
+write_val args[N][N];
 
 // function for print matrix
 void print_matrix(int matrix[N][N]) {
@@ -42,25 +45,23 @@ void* write_m(void* arg) {
 
 // function for computing  matrix multiplication value for one spot in C 
 void* compute(void* arg) {
-  calc_val* cv = arg;
+  write_val* wv = arg;
   int result = 0; 
   for(int i = 0; i < N; i++) {
-    result += A[cv->ar][i] * B[i][cv->bc];
+    result += A[wv->row][i] * B[i][wv->col];
   }
-  C[cv->ar][cv->bc] = result;
+  C[wv->row][wv->col] = result;
 } 
 
 // function for write values into matrices
-//void write_matrices(unsigned int seed, pthread_t write_threads[N][N], write_val args[N][N]){
 void write_matrices() {
   pthread_t write_threads[N][N];
   unsigned int seed = time(NULL);
-  write_val args[N][N];
   for(int row = 0; row < N; row++) {
     for(int col = 0; col < N; col++) {
-      srand(seed);
+      // srand(seed);
       int a = rand_r(&seed) % 9 + 2;
-      srand(seed);
+      //srand(seed);
       int b = rand_r(&seed) % 9 + 2;
       write_val* temp = &args[row][col];
       temp->a_val = a;
@@ -85,12 +86,8 @@ void write_matrices() {
 // function for computing matrix C
 void compute_C() {
   pthread_t calc_threads[N][N];
-  calc_val args[N][N];
   for(int row = 0; row < N; row++) {
     for(int col = 0; col < N; col++) {
-      calc_val* cv = &args[row][col];
-      cv->ar = row;
-      cv->bc = col;
       if(pthread_create(&calc_threads[row][col], 0, compute, &args[row][col]) != 0) {
 	printf("Initialize thread %d failed! \n", calc_threads[row][col]);
       }
