@@ -58,9 +58,7 @@ int exec_args(char** args) {
   if(strcmp(args[0], "cd") == 0) { // if the command is cd
     return exec_cd(args);
   }else if(strcmp(args[0], "exit") == 0) { // if the command is exit
-    printf("here\n");
     return 0;
-    printf("what\n");
   } else {
     pid_t pid;
     int status;
@@ -70,14 +68,14 @@ int exec_args(char** args) {
     } else if (pid == 0) { // children process
       if(execvp(args[0], args) < 0) {
 	printf("An error occurred during execution, executing command %s failed!\n", args[0]);
-	return 1;
       }
+      exit(0);
     } else if (pid > 0) {
       pid_t res = wait(&status);
       if(res < 0) {
 	printf("Child %d is not waited by the parent\n", pid);
 	return 1;
-      } 
+      }       
     }
   }
   return 1;
@@ -91,9 +89,7 @@ int main(int argc, char** argv) {
     free(input);
     free(args);
     input = read_input();
-    printf("input is %s\n", input);
     args = parse_input(input);
     run = exec_args(args);
-    printf("what is input and run: %s %d\n", input, run);
   }
 }
