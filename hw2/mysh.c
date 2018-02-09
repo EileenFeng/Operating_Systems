@@ -7,7 +7,7 @@
 
 #define HISTSIZE 50
 
-// global variables 
+// global variables
 int buff_size = 32;
 int arg_nums = 0;
 char** history; // store history inputs
@@ -25,7 +25,7 @@ char* read_input() {
   return input;
 }
 
-// parse the input 
+// parse the input
 char** parse_input(char* input) {
   char** tokens = malloc(buff_size * sizeof(char*));
   char* token = strtok(input, " \t\r\n\a");
@@ -67,21 +67,22 @@ char** get_recent_history_input(int num) {
   }
 }
 
-void store_history(char* input) {
-  count ++;
+void store_history(char* input, int incre) {
+  count  = incre ? count+1 : count;
   int index = count % HISTSIZE;
   index = index == 0 ? HISTSIZE - 1 : index - 1;
   history[index] = malloc(strlen(input)*sizeof(char));
   char* temp = input;
   int tcount = 0;
   while(tcount < strlen(input)) {
-    history[index][tcount] = *temp;
+    history[index][tcount] = (*temp == '\n') ? ' ' : *temp;
     tcount++; temp++;
   }
+  history[index][tcount] = NULL;
 }
 
 int execute_history_input(char* history_input) {
-   int index = 0;
+  int index = 0;
   int count_backwards = 0; // check if it's counting backwards for history input
   if(strcmp(history_input, "!!") == 0) {
     count_backwards = 1;
@@ -109,14 +110,14 @@ int execute_history_input(char* history_input) {
   }
   if(index <=0 || index >= HISTSIZE || index >= count) {
     printf("History input index too small or too big!\n");
-    store_history(history_input);
+    store_history(history_input, 0);
     return 1;
   }
   int minus = (count >= HISTSIZE) ? HISTSIZE : count;
   char* temp_input = count_backwards ? *get_recent_history_input(index) : *get_recent_history_input(minus-index+1);
-  store_history(temp_input);
+  store_history(temp_input, 0);
   char** args = parse_input(temp_input);
-  return exec_args(args, temp_input, 0);
+  return exec_args(args, temp_input);
 }
 
 int print_history(){
@@ -138,12 +139,11 @@ int exec_history(char** arg) {
 }
 
 // execute command line inputs
-int exec_args(char** args, char*input, int st) {
+int exec_args(char** args, char*input) {
   if(args[0][0] == '!') {
     int value = execute_history_input(args[0]);
     return value;
   } else {
-    if(st) {store_history(input);}
     if(strcmp(args[0], "history") == 0) {
       exec_history(args);
     }else if(strcmp(args[0], "cd") == 0) { // if the command is cd
@@ -165,7 +165,7 @@ int exec_args(char** args, char*input, int st) {
 	pid_t res = wait(&status);
 	if(res < 0) {
 	  printf("Child %d is not waited by the parent\n", pid);
-	}       
+	}
       }
     }
   }
@@ -178,8 +178,9 @@ int main(int argc, char** argv) {
   int run;
   do {
     input = read_input();
+    store_history(input, 1);
     args = parse_input(input);
-    run = exec_args(args, input, 1);
+    run = exec_args(args, input);
     free(args);
     free(input);
   } while (run);
