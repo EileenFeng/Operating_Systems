@@ -74,7 +74,6 @@ int exec_args(char** args) {
       pid_t res = wait(&status);
       if(res < 0) {
 	printf("Child %d is not waited by the parent\n", pid);
-	return 1;
       }       
     }
   }
