@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#define HISTSIZE 5
+#define HISTSIZE 50
 
 // global variables 
 int buff_size = 32;
