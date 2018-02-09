@@ -39,7 +39,7 @@ char** parse_input(char* input) {
   return tokens;
 }
 
-// function for changing directory
+// cd is not executable command, function for cd
 int exec_cd(char** path_args) {
   if(path_args[1] == NULL) { // when no path is provided
     printf("Please provide a path for changing directory! \n");
@@ -55,9 +55,9 @@ int exec_cd(char** path_args) {
 
 // execute command line inputs
 int exec_args(char** args) {
-  if(strcmp(args[0], "cd") == 0) { // if the command is cd
+   if(strcmp(args[0], "cd") == 0) { // if the command is cd
     return exec_cd(args);
-  }else if(strcmp(args[0], "exit") == 0) { // if the command is exit
+    }else if(strcmp(args[0], "exit") == 0) { // if the command is exit
     return 0;
   } else {
     pid_t pid;
