@@ -7,7 +7,7 @@
    #define _REENTRANT
 #endif
 
-#define N 3
+#define N 5
 
 // structs
 typedef struct {int row; int col; int a_val; int b_val;} write_val;
@@ -60,9 +60,9 @@ void write_matrices() {
   for(int row = 0; row < N; row++) {
     for(int col = 0; col < N; col++) {
       // srand(seed);
-      int a = rand_r(&seed) % 9 + 2;
+      int a = rand_r(&seed) % 19 + 2;
       //srand(seed);
-      int b = rand_r(&seed) % 9 + 2;
+      int b = rand_r(&seed) % 19 + 2;
       write_val* temp = &args[row][col];
       temp->a_val = a;
       temp->b_val = b;
