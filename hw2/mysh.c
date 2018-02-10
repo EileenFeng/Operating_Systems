@@ -67,7 +67,7 @@ void store_history(char* input, int incre) { // decre = 1 when we need to increm
   count = incre? count+1 : count;
   int index = count % HISTSIZE;
   index = index == 0 ? HISTSIZE - 1 : index - 1;
-  history[index] = malloc(strlen(input)*sizeof(char));
+  history[index] = malloc((strlen(input)+1)*sizeof(char));
   char* temp = input;
   int tcount = 0;
   while(tcount < strlen(input)) {
@@ -111,7 +111,10 @@ int execute_history_input(char* history_input) {
   }
   int minus = (count >= HISTSIZE) ? HISTSIZE : count;
   printf("index %d count %d \n", index, count);
-  char* temp_input = count_backwards ? *get_recent_history_input(index+1) : *get_recent_history_input(minus-index+1);
+  char* temp = count_backwards ? *get_recent_history_input(index+1) : *get_recent_history_input(minus-index+1);
+  char temp_input[strlen(temp) + 1];
+  for(int i = 0; i < strlen(temp); i++) { temp_input[i] = temp[i];}
+  temp_input[strlen(temp)] = NULL;
   store_history(temp_input, 0);
   char** args = parse_input(temp_input);
   return exec_args(args, temp_input);
