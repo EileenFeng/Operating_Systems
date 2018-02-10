@@ -10,4 +10,4 @@ mysh: mysh.o
 mysh.o: mysh.c
 	$(CC) -c mysh.c
 clean:
-	rm threads threads.o
+	rm threads mysh threads.o mysh.o
