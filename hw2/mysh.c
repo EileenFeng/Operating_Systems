@@ -58,11 +58,13 @@ int exec_cd(char** path_args) {
   return 1;
 }
 
+// get the address of history input
 char** get_recent_history_input(int num) {
   int index = (count - num) % HISTSIZE;
   return &history[index];
 }
 
+// store inputs
 void store_history(char* input, int incre) { // decre = 1 when we need to increment count
   count = incre? count+1 : count;
   int index = count % HISTSIZE;
@@ -77,6 +79,7 @@ void store_history(char* input, int incre) { // decre = 1 when we need to increm
   history[index][tcount] = NULL;
 }
 
+// execute history input is requested
 int execute_history_input(char* history_input) {
   int index = 0;
   int count_backwards = 0; // check if it's counting backwards for history input
@@ -91,7 +94,7 @@ int execute_history_input(char* history_input) {
     } else if(isdigit(history_input[1])) {
       i = 1;
     } else {
-      printf("Invalid input: %s \n", history_input);
+      printf("Invalid input for executing history input!\n");
       return 1;
     }
     for(; i < strlen(history_input); i++) {
@@ -110,8 +113,9 @@ int execute_history_input(char* history_input) {
     return 1;
   }
   int minus = (count >= HISTSIZE) ? HISTSIZE : count;
-  printf("index %d count %d \n", index, count);
+  // get the history input
   char* temp = count_backwards ? *get_recent_history_input(index+1) : *get_recent_history_input(minus-index+1);
+  // hard copy since parse_input will change the string
   char temp_input[strlen(temp) + 1];
   for(int i = 0; i < strlen(temp); i++) { temp_input[i] = temp[i];}
   temp_input[strlen(temp)] = NULL;
@@ -120,6 +124,7 @@ int execute_history_input(char* history_input) {
   return exec_args(args, temp_input);
 }
 
+// function for print all history input
 int print_history(){
   printf("History inputs are: \n");
   int ind = (count >= HISTSIZE) ? HISTSIZE : count;
@@ -130,6 +135,7 @@ int print_history(){
   return 1;
 }
 
+// function for executing 'history' command
 int exec_history(char** arg) {
   if(arg[1] != NULL) {
     printf("'history' does not take any arguments! \n");
@@ -179,10 +185,10 @@ int main(int argc, char** argv) {
   do {
     input = read_input();
     store_history(input, 1);
-    printf("count %d input: %s \n", count, input);
     args = parse_input(input);
     run = exec_args(args, input);
     free(args);
     free(input);
   } while (run);
+  free(history);
 }
