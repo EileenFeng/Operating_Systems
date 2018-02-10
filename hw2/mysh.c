@@ -59,16 +59,12 @@ int exec_cd(char** path_args) {
 }
 
 char** get_recent_history_input(int num) {
-  int index = (count - num + 1) % HISTSIZE;
-  if(index == 0) {
-    return &history[HISTSIZE-1];
-  } else {
-    return &history[index - 1];
-  }
+  int index = (count - num) % HISTSIZE;
+  return &history[index];
 }
 
-void store_history(char* input, int incre) {
-  count  = incre ? count+1 : count;
+void store_history(char* input, int incre) { // decre = 1 when we need to increment count
+  count = incre? count+1 : count;
   int index = count % HISTSIZE;
   index = index == 0 ? HISTSIZE - 1 : index - 1;
   history[index] = malloc(strlen(input)*sizeof(char));
@@ -114,7 +110,8 @@ int execute_history_input(char* history_input) {
     return 1;
   }
   int minus = (count >= HISTSIZE) ? HISTSIZE : count;
-  char* temp_input = count_backwards ? *get_recent_history_input(index) : *get_recent_history_input(minus-index+1);
+  printf("index %d count %d \n", index, count);
+  char* temp_input = count_backwards ? *get_recent_history_input(index+1) : *get_recent_history_input(minus-index+1);
   store_history(temp_input, 0);
   char** args = parse_input(temp_input);
   return exec_args(args, temp_input);
@@ -145,7 +142,7 @@ int exec_args(char** args, char*input) {
     return value;
   } else {
     if(strcmp(args[0], "history") == 0) {
-      exec_history(args);
+      return exec_history(args);
     }else if(strcmp(args[0], "cd") == 0) { // if the command is cd
       return exec_cd(args);
     }else if(strcmp(args[0], "exit") == 0) { // if the command is exit
@@ -179,6 +176,7 @@ int main(int argc, char** argv) {
   do {
     input = read_input();
     store_history(input, 1);
+    printf("count %d input: %s \n", count, input);
     args = parse_input(input);
     run = exec_args(args, input);
     free(args);
