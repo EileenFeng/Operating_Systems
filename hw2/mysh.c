@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#define HISTSIZE 50
+#define HISTSIZE 5
 
 // global variables
 int buff_size = 32;
@@ -60,7 +60,8 @@ int exec_cd(char** path_args) {
 
 // get the address of history input
 char** get_recent_history_input(int num) {
-  int index = (count - num) % HISTSIZE;
+  int index = count >= HISTSIZE ? num % HISTSIZE : num;
+  index = index == 0 ? HISTSIZE - 1 : index - 1;
   return &history[index];
 }
 
@@ -107,19 +108,19 @@ int execute_history_input(char* history_input) {
       }
     }
   }
-  if(index <=0 || index >= HISTSIZE || index >= count) {
+  if(index <0 || index > HISTSIZE || index > count) {
     printf("History input index too small or too big!\n");
     store_history(history_input, 0);
     return 1;
   }
   int minus = (count >= HISTSIZE) ? HISTSIZE : count;
   // get the history input
-  char* temp = count_backwards ? *get_recent_history_input(index+1) : *get_recent_history_input(minus-index+1);
+  char* temp = count_backwards ? *get_recent_history_input(count - index + 1) : *get_recent_history_input(count - (minus - index));
   // hard copy since parse_input will change the string
   char temp_input[strlen(temp) + 1];
   for(int i = 0; i < strlen(temp); i++) { temp_input[i] = temp[i];}
   temp_input[strlen(temp)] = NULL;
-  store_history(temp_input, 0);
+  store_history(temp_input, 1);
   char** args = parse_input(temp_input);
   return exec_args(args, temp_input);
 }
@@ -130,7 +131,7 @@ int print_history(){
   int ind = (count >= HISTSIZE) ? HISTSIZE : count;
   for(int i = 0; i < ind; i++) {
     printf("%d. ", i+1);
-    printf("%s\n", *get_recent_history_input(ind-i));
+    printf("%s\n", *get_recent_history_input(count - (ind - i - 1)));
   }
   return 1;
 }
@@ -184,7 +185,7 @@ int main(int argc, char** argv) {
   int run;
   do {
     input = read_input();
-    store_history(input, 1);
+    if(*input != '!') { store_history(input, 1);}
     args = parse_input(input);
     run = exec_args(args, input);
     free(args);
