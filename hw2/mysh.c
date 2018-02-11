@@ -70,6 +70,9 @@ void store_history(char* input, int incre) { // decre = 1 when we need to increm
   count = incre? count+1 : count;
   int index = count % HISTSIZE;
   index = index == 0 ? HISTSIZE - 1 : index - 1;
+  if(count >= HISTSIZE) {
+    free(history[index]);
+  }
   history[index] = malloc((strlen(input)+1)*sizeof(char));
   char* temp = input;
   int tcount = 0;
@@ -191,5 +194,9 @@ int main(int argc, char** argv) {
     free(args);
     free(input);
   } while (run);
+  int end = count >= HISTSIZE ? HISTSIZE : count;
+  for(int i = 0; i < end; i++) {
+    free(history[i]);
+  }
   free(history);
 }
