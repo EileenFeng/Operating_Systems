@@ -11,3 +11,5 @@
 - Limitations
   - Do not allow special symbols such as '&'
   - Spaces need to be inserted between each two arguments
+  - Does not support 'cat' with redirection
+  - Does not support multiple commands input in one line, for instance 'pwd ls' does not work, a system error will be given but the program ./mysh mostly does not crash
