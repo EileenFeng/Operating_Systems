@@ -175,7 +175,7 @@ int exec_args(char** args, char*input, int free_args) {
 	  printf("An error occurred during execution, executing command %s failed!\n", args[0]);
 	}
 	free(args);
-	exit(0);
+	exit(0); // usage of exit referrence to: https://brennan.io/2015/01/16/write-a-shell-in-c/  
       } else if (pid > 0) {
 	pid_t res = wait(&status);
 	if(res < 0) {
