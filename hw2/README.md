@@ -7,4 +7,7 @@
 - How to run
   - Type in './threads' to run the first program (first part of homework)
   - Type in './mysh' to run the simple shell
-  
+
+- Limitations
+  - Do not allow special symbols such as '&'
+  - Spaces need to be inserted between each two arguments
