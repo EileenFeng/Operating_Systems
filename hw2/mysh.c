@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#define HISTSIZE 5
+#define HISTSIZE 50
 
 // global variables
 int buff_size = 32;
@@ -125,7 +125,11 @@ int execute_history_input(char* history_input) {
   temp_input[strlen(temp)] = NULL;
   store_history(temp_input, 1);
   char** args = parse_input(temp_input);
-  return exec_args(args, temp_input);
+  if(arg_nums == 0) {
+    printf("History input has no command inputs!\n");
+    return 1;
+  }
+  return exec_args(args, temp_input, 1);
 }
 
 // function for print all history input
@@ -149,15 +153,15 @@ int exec_history(char** arg) {
 }
 
 // execute command line inputs
-int exec_args(char** args, char*input) {
+int exec_args(char** args, char*input, int free_args) {
+  int value;
   if(args[0][0] == '!') {
-    int value = execute_history_input(args[0]);
-    return value;
+    return execute_history_input(args[0]);
   } else {
     if(strcmp(args[0], "history") == 0) {
-      return exec_history(args);
+      value =  exec_history(args);
     }else if(strcmp(args[0], "cd") == 0) { // if the command is cd
-      return exec_cd(args);
+      value = exec_cd(args);
     }else if(strcmp(args[0], "exit") == 0) { // if the command is exit
       return 0;
     } else {
@@ -170,6 +174,7 @@ int exec_args(char** args, char*input) {
 	if(execvp(args[0], args) < 0) {
 	  printf("An error occurred during execution, executing command %s failed!\n", args[0]);
 	}
+	free(args);
 	exit(0);
       } else if (pid > 0) {
 	pid_t res = wait(&status);
@@ -177,9 +182,14 @@ int exec_args(char** args, char*input) {
 	  printf("Child %d is not waited by the parent\n", pid);
 	}
       }
+      value = 1;
     }
   }
-  return 1;
+  // when exec_history_input calls exec_args, need to free the array 'args'
+  if(free_args) {
+    free(args);
+  }
+    return value;
 }
 
 int main(int argc, char** argv) {
@@ -190,7 +200,11 @@ int main(int argc, char** argv) {
     input = read_input();
     if(*input != '!') { store_history(input, 1);}
     args = parse_input(input);
-    run = exec_args(args, input);
+    if(arg_nums == 0) {
+      printf("No command line inputs!\n");
+    } else {
+      run = exec_args(args, input, 0);
+    }
     free(args);
     free(input);
   } while (run);
