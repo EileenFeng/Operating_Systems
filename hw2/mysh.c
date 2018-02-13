@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/wait.h>
+#include <sys/signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -12,6 +13,19 @@ int buff_size = 32;
 int arg_nums = 0;
 char** history; // store history inputs
 int count = 0; // keep counting the number of inputs in total
+int interrupt = 0;
+
+// function prototype
+char* read_input();
+char** parse_input(char* input);
+int exec_cd(char** path_args);
+char** get_recent_history_input(int num);
+void store_history(char* input);
+int execute_history_input(char* history_input);
+int print_history();
+int exec_history(char** arg);
+int exec_args(char** args, char*input, int free_args);
+void sig_handler(int sig);
 
 // read in the input
 char* read_input() {
@@ -87,7 +101,6 @@ void store_history(char* input) { // incre = 1 when we need to increment count
 int execute_history_input(char* history_input) {
   int index = 0;
   int count_backwards = 0; // check if it's counting backwards for history input
-  
   if(strcmp(history_input, "!!") == 0) {
     count_backwards = 1;
     index = 1;
@@ -197,21 +210,33 @@ int exec_args(char** args, char*input, int free_args) {
     return value;
 }
 
+void sig_handler(int sig) {
+  interrupt = 1;
+}
+
 int main(int argc, char** argv) {
   history = malloc(HISTSIZE * sizeof(char*));
   char *input, **args;
   int run;
+  signal(SIGINT, sig_handler);
   do {
     input = read_input();
-    if(*input != '!') { store_history(input);}
-    args = parse_input(input);
-    if(arg_nums == 0) {
-      printf("No command line inputs!\n");
+    if(!interrupt) {
+      if(*input != '!') { store_history(input);}
+      args = parse_input(input);
+      if(arg_nums == 0) {
+	printf("No command line inputs!\n");
+      } else {
+	run = exec_args(args, input, 0);
+      }
+      free(args);
+      free(input);
     } else {
-      run = exec_args(args, input, 0);
+      store_history(input);
+      interrupt = 0;
+      run = 1;
+      free(input);
     }
-    free(args);
-    free(input);
   } while (run);
   int end = count >= HISTSIZE ? HISTSIZE : count;
   for(int i = 0; i < end; i++) {

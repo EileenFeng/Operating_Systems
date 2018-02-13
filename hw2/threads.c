@@ -41,6 +41,7 @@ void* write_m(void* arg) {
   write_val* wv = arg;
   A[wv->row][wv->col] = wv->a_val;
   B[wv->row][wv->col] = wv->b_val;
+  return NULL;
 }
 
 // function for computing  matrix multiplication value for one spot in C 
@@ -51,6 +52,7 @@ void* compute(void* arg) {
     result += A[wv->row][i] * B[i][wv->col];
   }
   C[wv->row][wv->col] = result;
+  return NULL;
 } 
 
 // function for write values into matrices
@@ -69,7 +71,7 @@ void write_matrices() {
       temp->row = row;
       temp->col = col;
       if(pthread_create(&write_threads[row][col], 0, write_m, &args[row][col]) != 0) {
-	printf("Initialize thread %d failed!\n", write_threads[row][col]);
+	printf("Initialize thread %ld failed!\n", write_threads[row][col]);
       }
     }
   }
@@ -77,7 +79,7 @@ void write_matrices() {
   for(int row = 0; row < N; row++) {
     for(int col = 0; col < N; col++) {
       if(pthread_join(write_threads[row][col], 0) != 0) {
-	printf("Thread %d failed to join! \n", write_threads[row][col]);
+	printf("Thread %ld failed to join! \n", write_threads[row][col]);
       }
     }
   }
@@ -89,7 +91,7 @@ void compute_C() {
   for(int row = 0; row < N; row++) {
     for(int col = 0; col < N; col++) {
       if(pthread_create(&calc_threads[row][col], 0, compute, &args[row][col]) != 0) {
-	printf("Initialize thread %d failed! \n", calc_threads[row][col]);
+	printf("Initialize thread %ld failed! \n", calc_threads[row][col]);
       }
     }
   }
@@ -97,7 +99,7 @@ void compute_C() {
   for(int row = 0; row < N; row++) {
     for(int col = 0; col < N; col++) {
       if(pthread_join(calc_threads[row][col], 0) != 0) {
-	printf("Thread %d failed to join!\n", calc_threads[row][col]);
+	printf("Thread %ld failed to join!\n", calc_threads[row][col]);
       }
     }
   }
@@ -115,6 +117,7 @@ void* row_sum (void* arg) {
     MAX_ROW_SUM = temp_sum;
   }
   pthread_mutex_unlock(&lock);
+  return NULL;
 }
 
 void find_max_row() {
@@ -123,13 +126,13 @@ void find_max_row() {
   for(int i = 0; i < N; i++) {
     rows[i] = i;
     if(pthread_create(&max_threads[i], 0, row_sum, &rows[i]) != 0) {
-      printf("Initialize thread %d failed!\n", max_threads[i]);
+      printf("Initialize thread %ld failed!\n", max_threads[i]);
       exit(0);
     }
   }
   for(int i = 0 ; i < N; i++) {
     if(pthread_join(max_threads[i], 0) != 0) {
-      printf("Thread %d is failed to join! \n", max_threads[i]);
+      printf("Thread %ld is failed to join! \n", max_threads[i]);
     }
   }
 }
