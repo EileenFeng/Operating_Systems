@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#define HISTSIZE 50
+#define HISTSIZE 5 // set to default size
 
 // global variables
 int buff_size = 32;
@@ -61,15 +61,15 @@ int exec_cd(char** path_args) {
 // get the address of history input
 char** get_recent_history_input(int num) {
   int index = count >= HISTSIZE ? num % HISTSIZE : num;
-  index = index == 0 ? HISTSIZE - 1 : index - 1;
+  index = index == 0 ? HISTSIZE - 1 : index - 1; // index should be one less than the size
   return &history[index];
 }
 
 // store inputs
-void store_history(char* input, int incre) { // decre = 1 when we need to increment count
-  count = incre? count+1 : count;
+void store_history(char* input) { // incre = 1 when we need to increment count
+  count++;
   int index = count % HISTSIZE;
-  index = index == 0 ? HISTSIZE - 1 : index - 1;
+  index = index == 0 ? HISTSIZE - 1 : index - 1; 
   if(count >= HISTSIZE) {
     free(history[index]);
   }
@@ -80,30 +80,33 @@ void store_history(char* input, int incre) { // decre = 1 when we need to increm
     history[index][tcount] = (*temp == '\n') ? ' ' : *temp;
     tcount++; temp++;
   }
-  history[index][tcount] = NULL;
+  history[index][tcount] = '\0';
 }
 
 // execute history input is requested
 int execute_history_input(char* history_input) {
   int index = 0;
   int count_backwards = 0; // check if it's counting backwards for history input
+  
   if(strcmp(history_input, "!!") == 0) {
     count_backwards = 1;
     index = 1;
   } else {
-    int i = 0;
+    int start = 0;
     if(history_input[1] == '-' ) {
-      i = 2;
+      start = 2;
       count_backwards = 1;
     } else if(isdigit(history_input[1])) {
-      i = 1;
+      start = 1;
     } else {
       printf("Invalid input for executing history input!\n");
+      store_history(history_input);
       return 1;
     }
-    for(; i < strlen(history_input); i++) {
+    for(int i = start; i < strlen(history_input); i++) {
       if(!isdigit(history_input[i])) {
 	printf("History index can be positive numbers only! \n");
+	store_history(history_input);
 	return 1;
       } else {
 	index *= 10;
@@ -111,22 +114,23 @@ int execute_history_input(char* history_input) {
       }
     }
   }
-  if(index <0 || index > HISTSIZE || index > count) {
+  if(index <=0 || index > HISTSIZE || index > count) {
     printf("History input index too small or too big!\n");
-    store_history(history_input, 0);
+    store_history(history_input);
     return 1;
   }
   int minus = (count >= HISTSIZE) ? HISTSIZE : count;
-  // get the history input
+  // get the history input, calculation to ensure the right index
   char* temp = count_backwards ? *get_recent_history_input(count - index + 1) : *get_recent_history_input(count - (minus - index));
   // hard copy since parse_input will change the string
   char temp_input[strlen(temp) + 1];
   for(int i = 0; i < strlen(temp); i++) { temp_input[i] = temp[i];}
-  temp_input[strlen(temp)] = NULL;
-  store_history(temp_input, 1);
+  temp_input[strlen(temp)] = '\0';
+  store_history(temp_input);
   char** args = parse_input(temp_input);
   if(arg_nums == 0) {
     printf("History input has no command inputs!\n");
+    free(args);
     return 1;
   }
   return exec_args(args, temp_input, 1);
@@ -150,6 +154,7 @@ int exec_history(char** arg) {
   } else {
     print_history();
   }
+  return 1;
 }
 
 // execute command line inputs
@@ -198,7 +203,7 @@ int main(int argc, char** argv) {
   int run;
   do {
     input = read_input();
-    if(*input != '!') { store_history(input, 1);}
+    if(*input != '!') { store_history(input);}
     args = parse_input(input);
     if(arg_nums == 0) {
       printf("No command line inputs!\n");
