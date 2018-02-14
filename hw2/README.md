@@ -20,5 +20,5 @@
     - '^C' (Control-C) does not stop the shell; it simply print out '^C' to the console and keeps running
      - '^D' (Control-D) will cause read from stdin failed, but the program does not exit (which is not the same as shell on powerpuff, which exit when typed in Control-D)
      - If trying to execute history inputs when there is no history inputs available yet, for instance when '!!' is the first input to the shell, then a warning will be given by the program
-  
+  - When typed in '^Z' (Control-Z) while running program in valgrind, valgrind will show there is an error, but it does not influence program running  
    
