@@ -9,7 +9,7 @@
   - Type in './mysh' to run the simple shell
   - 'mysh' has history fully implemented
   
-- Limitations
+- Limitations & Notations
   - Do not allow special symbols such as '&'
   - Spaces need to be inserted between each two arguments
   - Does not support 'cat' with redirection
@@ -17,6 +17,8 @@
   - For history:
     - No spaces are allowed between '!' or '!-'and the number
     - No negative number for history index are allowed, only positive number are accepted
-  - '^C' (Control-C) does not stop the shell; it simply print out '^C' to the console and keeps running
+    - '^C' (Control-C) does not stop the shell; it simply print out '^C' to the console and keeps running
+     - '^D' (Control-D) will cause read from stdin failed, but the program does not exit (which is not the same as shell on powerpuff, which exit when typed in Control-D)
+     - If trying to execute history inputs when there is no history inputs available yet, for instance when '!!' is the first input to the shell, then a warning will be given by the program
   
    
