@@ -13,6 +13,7 @@ int buff_size = 32;
 int arg_nums = 0;
 char** history; // store history inputs
 int count = 0; // keep counting the number of inputs in total
+int non_history_count = 0; //keep counting the number of inputs that 
 int interrupt = 0;
 
 // function prototype
@@ -33,8 +34,9 @@ char* read_input() {
   char* input = NULL;
   printf("mysh > ");
   if(getline(&input, &readn, stdin) < 0) {
-    printf("Read from stdin failed! \n");
-    return NULL;
+    printf("getline from stdin failed! \n");
+    free(input);
+    input = NULL;
   }
   return input;
 }
@@ -84,7 +86,7 @@ void store_history(char* input) { // incre = 1 when we need to increment count
   count++;
   int index = count % HISTSIZE;
   index = index == 0 ? HISTSIZE - 1 : index - 1; 
-  if(count >= HISTSIZE) {
+  if(count > HISTSIZE) {
     free(history[index]);
   }
   history[index] = malloc((strlen(input)+1)*sizeof(char));
@@ -127,8 +129,8 @@ int execute_history_input(char* history_input) {
       }
     }
   }
-  if(index <=0 || index > HISTSIZE || index > count) {
-    printf("History input index too small or too big!\n");
+  if(index <=0 || index > HISTSIZE || index > count || index > non_history_count) {
+    printf("History input index too small or too big! Not enough history inputs to execute this line\n");
     store_history(history_input);
     return 1;
   }
@@ -146,7 +148,12 @@ int execute_history_input(char* history_input) {
     free(args);
     return 1;
   }
-  return exec_args(args, temp_input, 1);
+  if(args[0][0] == '!') {
+    free(args);
+    return execute_history_input(temp_input);
+  } else {
+    return exec_args(args, temp_input, 1);
+  }
 }
 
 // function for print all history input
@@ -204,9 +211,9 @@ int exec_args(char** args, char*input, int free_args) {
     }
   }
   // when exec_history_input calls exec_args, need to free the array 'args'
-  if(free_args) {
-    free(args);
-  }
+   if(free_args) { 
+     free(args); 
+   } 
     return value;
 }
 
@@ -215,22 +222,29 @@ void sig_handler(int sig) {
 }
 
 int main(int argc, char** argv) {
-  history = malloc(HISTSIZE * sizeof(char*));
   char *input, **args;
   int run;
+  history = malloc(HISTSIZE * sizeof(char*));
   signal(SIGINT, sig_handler);
   do {
     input = read_input();
     if(!interrupt) {
-      if(*input != '!') { store_history(input);}
-      args = parse_input(input);
-      if(arg_nums == 0) {
-	printf("No command line inputs!\n");
+      if(input == NULL) {
+	printf("Input readin failed!\n");
       } else {
-	run = exec_args(args, input, 0);
+	if(*input != '!') {
+	  store_history(input);
+	  non_history_count ++;
+	} 
+	args = parse_input(input);
+	if(arg_nums == 0) {
+	  printf("No command line inputs!\n");
+	} else {
+	  run = exec_args(args, input, 0);
+	}
+	free(input);
+	free(args);
       }
-      free(args);
-      free(input);
     } else {
       store_history(input);
       interrupt = 0;
