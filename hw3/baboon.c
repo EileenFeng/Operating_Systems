@@ -4,167 +4,237 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <semaphore.h>
-#include <error.h>
 #include <time.h>
- 
+#include <fcntl.h>
+
 #define TRUE 1
 #define FALSE 0
 #define BABOONNUM 100
 #define CLIMBTIME 4
-// global variables
+
+// globals
 enum baboon_direction{west = 10, east = 20};
-/*sem_t srope; // controls access to the rope
-sem_t wbc; // controls access to the counter for westward moving baboons
-sem_t ebc; // controls access to the counter for eastward moving baboons
-sem_t w_wait;  // controls access to the counter for the number of  going west waiting baboons
-sem_t e_wait; // controls access to the counter for the number of going east waiting baboons
-unsigned int value = 1;
-*/
-void get_on_rope() {
-  sleep(1);
-}
+struct data {
+  int on_rope_num;
+  int west_waiting;
+  int east_waiting;
+  int baboons;
+  int side; //used to keep track of sides
+};
+sem_t* rope; // controls access to the rope
+sem_t* westw; // controls access to the number of baboons waiting at west side
+sem_t* eastw; // controls access to the number of baboons waiting at east side
+sem_t* rope_data; // controls access to the data of the number and direction of baboons on rope
+sem_t* west_go; // controls whether west waiting baboons have access to the rope
+sem_t* east_go; // controls whether east waiting baboons have access to the rope
 
-void print_west(int* west_waiting, int* west_baboon) {
-  for(int i = 0; i < *west_waiting; i++) {
-    printf(" Ww ");
-  }
-  printf(" | ");
-  for(int i = 0; i < *west_baboon; i++) {
-    printf(" WG ");
-  }
-}
-
-void print_east(int* east_waiting, int* east_baboon) {
-  for(int i = 0; i < *east_baboon; i++) {
-    printf(" EG ");
-  }
-  printf(" | ");
-  for(int i = 0; i < *east_waiting; i++) {
-    printf(" Ew ");
-  }
-}
-
-void climb_rope(int* west_baboon, int* east_baboon, int* west_waiting, int* east_waiting) {
-  int time_spent = 0;
-  while(time_spent < CLIMBTIME) {
-    print_west(west_waiting, west_baboon);
-    print_east(east_waiting, east_baboon);
+void climb_rope(struct data *bdata, int num, int side){
+  int time = 0;
+  printf("active climbing\n");
+  while(time < CLIMBTIME) {
+    sem_wait(eastw);
+    int now_eastw = bdata->east_waiting;
+    sem_post(eastw);
+    sem_wait(westw);
+    int now_westw = bdata->west_waiting;
+    sem_post(westw);
+    for(int i = 0; i < now_westw; i++) {
+      printf(" WW ");
+    }
+    printf(" | ");
+    int valw;
+    sem_getvalue(west_go, &valw);
+    int vale;
+    sem_getvalue(east_go, &vale);
+    if(side == west) {
+      if(now_eastw > 0) {
+	if(valw > 0) { sem_wait(west_go); }
+	if(vale == 0) { sem_post(east_go); }
+      } else {
+	if(valw == 0) { sem_post(west_go); }
+      }
+      for(int i = 0; i < num; i++) {
+	printf(" WB ");
+      }
+    } else if (side == east) {
+      if(now_westw > 0) {
+	if(vale > 0) { sem_wait(east_go);}
+	if(valw == 0) { sem_post(west_go);}
+      } else {
+	if(vale == 0) { sem_post(east_go);}
+      }
+      for(int i = 0; i < num; i++) {
+	printf(" EB ");
+      }
+    }
+    printf(" | ");
+    for(int i = 0; i < now_eastw; i++) {
+      printf(" EW ");
+    }
     printf("\n");
-    printf("climbing go east are: %d, go west are: %d, wait west are %d, wait east are %d\n", *east_baboon, *west_baboon, *west_waiting, *east_waiting);
     sleep(1);
-    time_spent ++;
+    time++;
   }
 }
 
-void go_west(int* west_waiting, int* west_baboon, int* east_waiting, int* east_baboon) {
-  sem_wait(&wbc);
-  *west_baboon += 1;
-  if(*west_baboon == 1) {
-    get_on_rope();
-    sem_wait(&srope);
-    printf("srope 0 still run? west %d\n", sem_getvalue(&srope, &value));
-    sem_post(&wbc);
+void west_on_rope(struct data* bdata, pid_t pid) {
+  sem_wait(west_go);
+  sem_wait(rope_data);
+  int num = 0;
+  int side = 0;
+  // int value;
+  //sem_getvalue(rope, &value);
+  if(bdata->on_rope_num != 0) {
+    if(bdata->side == east) {
+      sem_post(rope_data);
+      sem_wait(rope);
+    }
+  } else {
+    sem_wait(rope);
+  }
+  printf("++++++++WWWest: %d is in CRITICAL REGION\n", pid);
+  bdata->on_rope_num += 1;
+  num = bdata->on_rope_num;
+  bdata->side = west;
+  side = bdata->side;
+  sem_wait(westw);
+  bdata->west_waiting -= 1;
+  sem_post(westw);
+  num = bdata->on_rope_num;
+  bdata->side = west;
+  side = bdata->side;
+  sem_post(rope_data);
+  climb_rope(bdata, num, side);
+  sem_wait(rope_data);
+  bdata->on_rope_num -= 1;
+  if(bdata->on_rope_num == 0) {
+    printf("-W_W_W_W_W_W__W no west baboon is on the rope\n");
+    sem_post(rope);
+  }
   
-  sem_wait(&w_wait);
-    *west_waiting -= 1;
-    sem_post(&w_wait);
-  }
-  printf("west waiting is %d, west going is %d srope is %d\n", *west_waiting, *west_baboon, sem_getvalue(&srope, &value));
-  climb_rope(west_baboon, east_baboon, west_waiting, east_waiting);
-  sem_wait(&wbc);
-  *west_baboon -= 1;
-  if(*west_baboon == 0) {
-    sem_post(&srope);
-  }
-  sem_post(&wbc); 
+  printf("--------West: %d left the rope\n", pid);
+  sem_post(rope_data);
 }
 
-void go_east(int* east_waiting, int* east_baboon, int* west_waiting, int* west_baboon) {
-  sem_wait(&ebc);
-  *east_baboon += 1;
-  if(*east_baboon == 1) {
-    get_on_rope();
-    sem_wait(&srope);   
-  
-    printf("srope 0 still run? east %d\n", sem_getvalue(&srope, &value));
-    sem_wait(&e_wait);
-    *east_waiting -= 1;
-    sem_post(&e_wait);
+void east_on_rope(struct data* bdata, pid_t pid) {
+  sem_wait(rope_data);
+  int num = 0;
+  int side = 0;
+  //int value;
+  //sem_getvalue(rope, &value);
+  if(bdata->on_rope_num != 0) {
+    if (bdata->side == west) {
+      sem_post(rope_data);
+      sem_wait(rope);
+    }
+  } else {
+    sem_wait(rope);
   }
-  sem_post(&ebc);
-  printf("east waiting is %d, east going is %d   srope is %d \n", *east_waiting, *east_baboon, sem_getvalue(&srope, &value));
-  climb_rope(west_baboon, east_baboon, west_waiting, east_waiting);
-  sem_wait(&ebc);
-  *east_baboon -= 1;
-  if(*east_baboon == 0) {
-    sem_post(&srope);
+  printf("++++++++EEEest: %d is in CRITICAL REGION\n", pid);
+  bdata->on_rope_num += 1;
+  num = bdata->on_rope_num;
+  bdata->side = east;
+  side = bdata->side;
+  sem_wait(eastw);
+  bdata->east_waiting -= 1;
+  sem_post(eastw);
+  sem_post(rope_data);
+  climb_rope(bdata, num, side);
+  sem_wait(rope_data);
+  bdata->on_rope_num -= 1;
+  if(bdata->on_rope_num == 0) {
+    printf("E_E_E_E_E_E_E_E__E_E_E no east baboon is on the rope\n");
+    sem_post(rope);
   }
-  sem_post(&ebc);
-  
+  printf("--------East: %d left the rope\n", pid);
+  sem_post(rope_data);
 }
 
-//void child_baboon(pid_t pid, int* wstwait, int* wbaboon, int* estwait, int* ebaboon) {
-void child_baboon(pid_t pid, int*wstwait, int* wbaboon, int* estwait, int* ebaboon) {
+void childBaboon(pid_t pid, struct data* bdata) {
   srand(pid);
-  int randNum = rand() % 20;
-  if(randNum < west) {
-    sem_wait(&w_wait);
-    *wstwait += 1;
-    sem_post(&w_wait);
-    go_west(wstwait, wbaboon, estwait, ebaboon);
-  } else if (randNum < east) {
-    sem_wait(&e_wait);
-    *estwait += 1;
-    sem_post(&e_wait);
-    go_east(estwait, ebaboon, wstwait, wbaboon);
+  int get_side = rand() % 20;
+  if(get_side <= west) {
+    sem_wait(rope_data);
+    if(bdata->side == -1) {
+      bdata->side = west;
+    }
+    sem_post(rope_data);
+    sem_wait(westw);
+    bdata->west_waiting += 1;
+    sem_post(westw);
+    west_on_rope(bdata, pid);
+  } else if (get_side <= east) {
+    sem_wait(rope_data);
+    if(bdata->side == -1) {
+      bdata->side = east;
+    }
+    sem_post(rope_data);
+    sem_wait(eastw);
+    bdata->east_waiting += 1;
+    sem_post(eastw);
+    east_on_rope(bdata, pid);
   }
 }
 
-int main (int argc, char** argv) {
-  int* shm = mmap(NULL, sizeof(int)*5, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS , -1, 0);
-  int* west_baboon = shm;
-  *west_baboon = 0;
-  int* east_baboon = shm + 1;
-  *east_baboon = 0;
-  int* west_waiting = shm + 2;
-  *west_waiting = 0;
-  int* east_waiting = shm + 3;
-  *east_waiting = 0;
-  int* baboons = shm + 4;
-  *baboons = 0;
-  /// initializing semaphores
- if(sem_init(&srope, 1, value) < 0) {
-    perror("Failed to initialize sempahore 'srope'\n");
-    return 0;
-  }
-  if(sem_init(&wbc, 1, 1) < 0) {
-    perror("Failed to initialize semaphore 'wbc'\n");
-    return 0;
-  }
-  if(sem_init(&ebc, 1, 1) <0) {
-    perror("Failed to initialize semaphore 'ebc'\n");
-    return 0;
-  }
-  if(sem_init(&w_wait, 1, 1) < 0) {
-    perror("Failed to initialize semaphore 'w_wait'\n");
-    return 0;
-  }
-  if(sem_init(&e_wait, 1, 1) < 0) {
-    perror("Failed to initialize semaphore 'e_wait'\n");
-    return 0;
-  }
-  while(*baboons < 3) {
-    *baboons += 1;
-    printf("baboons ccreated are %d\n", *baboons);
+int main(int argc, char** argv) {
+  struct data baboon_data;
+  struct data* shm = mmap(NULL, sizeof(baboon_data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS , -1, 0);
+  shm->on_rope_num = 0;
+  shm->west_waiting = 0;
+  shm->east_waiting = 0;
+  shm->baboons = 0;
+  shm->side = -1;
+  rope = sem_open("semaRope", O_CREAT, 0600, 1);
+  westw = sem_open("semaWestw", O_CREAT, 0600, 1);
+  eastw = sem_open("semaEastw", O_CREAT, 0600, 1);
+  rope_data = sem_open("semaRope_data", O_CREAT, 0600, 1);
+  west_go = sem_open("semawestgo", O_CREAT, 0600, 1);
+  east_go = sem_open("semaeastgo", O_CREAT, 0600, 1);
+  
+    int value = 11;
+    sem_getvalue(rope, &value);
+    printf("in main rope value  %d \n", value);
+    sem_getvalue(westw, &value);
+    printf("in main westw value  %d \n", value);
+    sem_getvalue(eastw, &value);
+    printf("in main eastw value  %d \n", value);
+    sem_getvalue(rope_data, &value);
+    printf("in main rope_data value  %d \n", value);
+    sem_getvalue(west_go, &value);
+    printf("in main west_go value  %d \n", value);
+    sem_getvalue(east_go, &value);
+    printf("in main east_go value  %d \n", value);
+
+  while(shm->baboons < 5) {
+    shm->baboons += 1;
+    srand(time(NULL));
+    int randTime = rand() % 5 + 1;
+    sleep(randTime);
     pid_t pid = fork();
-    if(pid == 0) {
-      pid_t childPid = getpid();
-      child_baboon(childPid, west_waiting, west_baboon, east_waiting, east_baboon);
-    } 
+    if(pid < 0) {
+      printf("fork failed\n");
+      exit(0);
+    } else if (pid == 0) {
+      pid_t childpid = getpid();
+      sleep(1);
+      childBaboon(childpid, shm);
+      exit(0);
+    }
   }
+  sem_unlink("semaRope");
+  sem_close(rope);
+  sem_unlink("semaWestw");
+  sem_close(westw);
+  sem_unlink("semaEastw");
+  sem_close(eastw);
+  sem_unlink("semaRope_data");
+  sem_close(rope_data);
+  sem_unlink("semawestgo");
+  sem_close(west_go);
+  sem_unlink("semaeastgo");
+  sem_close(east_go);
+  
   int stat;
-  if(wait(&stat) > 0) {
-    printf("process terminated\n");
-  }
+  wait(&stat);
+  // while(waitpid(-1, &stat,WNOHANG) != 0);
 }
-
