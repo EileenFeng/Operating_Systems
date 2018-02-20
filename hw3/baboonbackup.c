@@ -9,7 +9,7 @@
 
 #define TRUE 1
 #define FALSE 0
-#define BABOONNUM 10
+#define BABOONNUM 30
 #define CLIMBTIME 4
 #define GET_ON_ROPE_TIME 1
 #define ARRIVAL 6
@@ -63,8 +63,8 @@ void climb_rope(struct data *bdata, int num, int side){
 }
 
 void west_on_rope(struct data* bdata, pid_t pid) {
-  printf("============ West %d start waiting\n", pid);
   sem_wait(west_go);
+  printf("============ West %d start waiting\n", pid);
   sem_wait(rope_data);
   int num = 0;
   int side = 0;
@@ -102,6 +102,7 @@ void west_on_rope(struct data* bdata, pid_t pid) {
 }
 
 void east_on_rope(struct data* bdata, pid_t pid) {
+  sem_wait(east_go);
   printf("=========== East %d start waiting \n", pid);
   sem_wait(rope_data);
   int num = 0;
